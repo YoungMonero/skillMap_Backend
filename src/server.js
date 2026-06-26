@@ -4,6 +4,7 @@ import cors from 'cors';
 import authRoutes from './routes/auth.router.js';
 import tradesRoutes from './routes/trades.routes.js';
 import workersRoutes from './routes/workers.routes.js';
+import requestsRoutes from './routes/requests.routes.js';
 
 const app = express();
 app.use(cors());
@@ -18,6 +19,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/trades', tradesRoutes);
 
 app.use('/api/workers', workersRoutes);
+
+app.use('/api/requests', requestsRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, '0.0.0.0', () => {
