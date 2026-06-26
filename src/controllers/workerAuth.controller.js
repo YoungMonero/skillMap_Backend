@@ -17,14 +17,33 @@ export const registerWorker = async (req, res) => {
 
   const userId = authData.user.id;
 
-  await supabaseAdmin.from('profiles').insert({ id: userId, role: 'worker', name, email });
+  const { error: profileError } = await supabaseAdmin.from('profiles').insert({
+    id: userId, role: 'worker', name, email,
+  });
+  if (profileError) {
+    await supabaseAdmin.auth.admin.deleteUser(userId);
+    return res.status(500).json({ error: `Profile insert failed: ${profileError.message}` });
+  }
 
-  await supabaseAdmin.from('worker_profiles').insert({
+  // trade_id is NOT a column here — it lives in worker_skills instead
+  const { error: workerError } = await supabaseAdmin.from('worker_profiles').insert({
     user_id: userId,
-    trade_id,
     whatsapp_number,
     current_location: lat && lng ? `POINT(${lng} ${lat})` : null,
   });
+  if (workerError) {
+    await supabaseAdmin.auth.admin.deleteUser(userId);
+    return res.status(500).json({ error: `Worker profile insert failed: ${workerError.message}` });
+  }
+
+  const { error: skillError } = await supabaseAdmin.from('worker_skills').insert({
+    worker_id: userId,
+    trade_id,
+  });
+  if (skillError) {
+    await supabaseAdmin.auth.admin.deleteUser(userId);
+    return res.status(500).json({ error: `Skill insert failed: ${skillError.message}` });
+  }
 
   const { data: session, error: sessionError } = await supabaseClient.auth.signInWithPassword({ email, password });
   if (sessionError) return res.status(500).json({ error: sessionError.message });
